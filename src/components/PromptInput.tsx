@@ -4,6 +4,8 @@ interface PromptInputProps {
   onGenerate: (prompt: string) => void;
   isLoading: boolean;
   promptHistory?: string[];
+  onRemovePrompt?: (prompt: string) => void;
+  onClearHistory?: () => void;
 }
 
 const EXAMPLES = [
@@ -15,7 +17,7 @@ const EXAMPLES = [
   '테이블 행 상세보기 패널. 선택한 고객의 기본 정보와 최근 활동 표시',
 ];
 
-export function PromptInput({ onGenerate, isLoading, promptHistory }: PromptInputProps) {
+export function PromptInput({ onGenerate, isLoading, promptHistory, onRemovePrompt, onClearHistory }: PromptInputProps) {
   const [prompt, setPrompt] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -36,18 +38,28 @@ export function PromptInput({ onGenerate, isLoading, promptHistory }: PromptInpu
         <h2>무엇을 만들까요?</h2>
       </div>
       <form onSubmit={handleSubmit} className="prompt-form">
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="예: 고객 목록 테이블 위에 들어갈 검색 필터 바를 만들어줘. 상태, 담당자, 날짜 범위 필터가 필요해."
-          className="prompt-textarea"
-          rows={3}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-              handleSubmit(e);
-            }
-          }}
-        />
+        <div style={{ position: 'relative' }}>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="예: 고객 목록 테이블 위에 들어갈 검색 필터 바를 만들어줘. 상태, 담당자, 날짜 범위 필터가 필요해."
+            className="prompt-textarea"
+            rows={3}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                handleSubmit(e);
+              }
+            }}
+          />
+          <div style={{
+            fontSize: '12px',
+            color: '#ff0000',
+            marginTop: '6px',
+            textAlign: 'right',
+          }}>
+            {prompt.length} 자
+          </div>
+        </div>
         <button
           type="submit"
           className="btn-generate"
@@ -62,40 +74,89 @@ export function PromptInput({ onGenerate, isLoading, promptHistory }: PromptInpu
       </form>
       {promptHistory && promptHistory.length > 0 && (
         <div style={{ marginTop: '12px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            최근 사용
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              최근 사용
+            </span>
+            <button
+              type="button"
+              onClick={onClearHistory}
+              style={{
+                fontSize: '11px',
+                padding: '4px 8px',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                transition: 'color 0.16s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#ff6b6b';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-muted)';
+              }}
+            >
+              전체삭제
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {promptHistory.slice(0, 5).map((p, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setPrompt(p)}
-                style={{
-                  textAlign: 'left',
-                  padding: '6px 10px',
-                  background: 'var(--surface)',
-                  border: '1px solid color-mix(in srgb, var(--text) 12%, transparent)',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  color: 'var(--text-soft)',
-                  cursor: 'pointer',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  transition: 'border-color 0.16s ease, color 0.16s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--primary)';
-                  e.currentTarget.style.color = 'var(--text)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--text) 12%, transparent)';
-                  e.currentTarget.style.color = 'var(--text-soft)';
-                }}
-              >
-                {p.length > 60 ? `${p.slice(0, 60)}...` : p}
-              </button>
+              <div key={i} style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setPrompt(p)}
+                  style={{
+                    flex: 1,
+                    textAlign: 'left',
+                    padding: '6px 10px',
+                    background: 'var(--surface)',
+                    border: '1px solid color-mix(in srgb, var(--text) 12%, transparent)',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    color: 'var(--text-soft)',
+                    cursor: 'pointer',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    transition: 'border-color 0.16s ease, color 0.16s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--primary)';
+                    e.currentTarget.style.color = 'var(--text)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--text) 12%, transparent)';
+                    e.currentTarget.style.color = 'var(--text-soft)';
+                  }}
+                >
+                  {p.length > 60 ? `${p.slice(0, 60)}...` : p}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemovePrompt?.(p)}
+                  style={{
+                    padding: '4px 8px',
+                    background: 'transparent',
+                    border: '1px solid color-mix(in srgb, var(--text) 12%, transparent)',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    transition: 'border-color 0.16s ease, color 0.16s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#ff6b6b';
+                    e.currentTarget.style.color = '#ff6b6b';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--text) 12%, transparent)';
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
             ))}
           </div>
         </div>

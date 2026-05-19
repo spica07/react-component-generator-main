@@ -12,6 +12,8 @@ interface UseComponentGeneratorReturn {
   error: string | null;
   generate: (prompt: string, apiKey: string | undefined, provider: Provider) => Promise<void>;
   removeComponent: (id: string) => void;
+  removePromptHistory: (prompt: string) => void;
+  clearPromptHistory: () => void;
   clearAll: () => void;
 }
 
@@ -59,10 +61,18 @@ export function useComponentGenerator(): UseComponentGeneratorReturn {
     setComponents((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
+  const removePromptHistory = useCallback((prompt: string) => {
+    setPromptHistory((prev) => prev.filter((p) => p !== prompt));
+  }, []);
+
+  const clearPromptHistory = useCallback(() => {
+    setPromptHistory([]);
+  }, []);
+
   const clearAll = useCallback(() => {
     setComponents([]);
     setPromptHistory([]);
   }, [setComponents, setPromptHistory]);
 
-  return { components, promptHistory, isLoading, error, generate, removeComponent, clearAll };
+  return { components, promptHistory, isLoading, error, generate, removeComponent, removePromptHistory, clearPromptHistory, clearAll };
 }

@@ -45,6 +45,54 @@ describe('useComponentGenerator — promptHistory', () => {
     act(() => { result.current.clearAll(); });
     expect(result.current.promptHistory).toEqual([]);
   });
+
+  it('removePromptHistory 후 해당 프롬프트가 삭제된다', async () => {
+    mockFetch.mockReturnValue(makeFetchResponse('const A = () => null;'));
+    const { result } = renderHook(() => useComponentGenerator());
+    await act(async () => {
+      await result.current.generate('프롬프트 1', undefined, 'anthropic');
+      await result.current.generate('프롬프트 2', undefined, 'anthropic');
+    });
+    act(() => { result.current.removePromptHistory('프롬프트 1'); });
+    expect(result.current.promptHistory).toEqual(['프롬프트 2']);
+  });
+
+  it('clearPromptHistory 후 promptHistory가 빈 배열이 된다', async () => {
+    mockFetch.mockReturnValue(makeFetchResponse('const A = () => null;'));
+    const { result } = renderHook(() => useComponentGenerator());
+    await act(async () => {
+      await result.current.generate('프롬프트 1', undefined, 'anthropic');
+      await result.current.generate('프롬프트 2', undefined, 'anthropic');
+    });
+    act(() => { result.current.clearPromptHistory(); });
+    expect(result.current.promptHistory).toEqual([]);
+  });
+
+  it('removePromptHistory 후 rcg:promptHistory가 localStorage에 반영된다', async () => {
+    mockFetch.mockReturnValue(makeFetchResponse('const A = () => null;'));
+    const { result } = renderHook(() => useComponentGenerator());
+    await act(async () => {
+      await result.current.generate('프롬프트 1', undefined, 'anthropic');
+      await result.current.generate('프롬프트 2', undefined, 'anthropic');
+    });
+    act(() => { result.current.removePromptHistory('프롬프트 1'); });
+    const stored = localStorage.getItem('rcg:promptHistory');
+    expect(stored).not.toBeNull();
+    expect(JSON.parse(stored!)).toEqual(['프롬프트 2']);
+  });
+
+  it('clearPromptHistory 후 rcg:promptHistory가 빈 배열로 localStorage 저장된다', async () => {
+    mockFetch.mockReturnValue(makeFetchResponse('const A = () => null;'));
+    const { result } = renderHook(() => useComponentGenerator());
+    await act(async () => {
+      await result.current.generate('프롬프트 1', undefined, 'anthropic');
+      await result.current.generate('프롬프트 2', undefined, 'anthropic');
+    });
+    act(() => { result.current.clearPromptHistory(); });
+    const stored = localStorage.getItem('rcg:promptHistory');
+    expect(stored).not.toBeNull();
+    expect(JSON.parse(stored!)).toEqual([]);
+  });
 });
 
 describe('useComponentGenerator — components 제한', () => {
@@ -67,6 +115,19 @@ describe('useComponentGenerator — components 제한', () => {
     await act(async () => { await result.current.generate('프롬프트', undefined, 'anthropic'); });
     act(() => { result.current.clearAll(); });
     expect(result.current.components).toEqual([]);
+  });
+
+  it('51개 프롬프트 생성 시 promptHistory가 50을 넘지 않는다', async () => {
+    mockFetch.mockReturnValue(makeFetchResponse('const A = () => null;'));
+    const { result } = renderHook(() => useComponentGenerator());
+    for (let i = 0; i < 51; i++) {
+      await act(async () => {
+        await result.current.generate(`프롬프트 ${i}`, undefined, 'anthropic');
+      });
+    }
+    await waitFor(() => {
+      expect(result.current.promptHistory.length).toBeLessThanOrEqual(50);
+    });
   });
 });
 

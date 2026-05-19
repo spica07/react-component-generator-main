@@ -21,7 +21,7 @@ function App() {
   });
   const { getApiKey, setApiKey } = useApiKeys();
   const apiKey = getApiKey(provider);
-  const { components, promptHistory, isLoading, error, generate, removeComponent, clearAll } =
+  const { components, promptHistory, isLoading, error, generate, removeComponent, removePromptHistory, clearPromptHistory, clearAll } =
     useComponentGenerator();
 
   useEffect(() => {
@@ -70,7 +70,13 @@ function App() {
 
       <main className="workspace">
         <section className="composer-panel" aria-label="컴포넌트 생성">
-          <PromptInput onGenerate={handleGenerate} isLoading={isLoading} promptHistory={promptHistory} />
+          <PromptInput
+            onGenerate={handleGenerate}
+            isLoading={isLoading}
+            promptHistory={promptHistory}
+            onRemovePrompt={removePromptHistory}
+            onClearHistory={clearPromptHistory}
+          />
         </section>
 
         <aside className="settings-panel" aria-label="실행 설정">

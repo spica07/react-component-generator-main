@@ -2,9 +2,27 @@
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true
   },
-    "permissions": {
-      "allow": [
-        "Write(.claude/skills/**)"
-      ]
-    }
+  "permissions": {
+    "allow": [
+      "Write(.claude/skills/**)"
+    ],
+    "deny": [
+      "Read(.env*)", "Read(*credentials*)", "Read(*secrets*)",
+      "Bash(cat .env*)", "Bash(cat *secrets*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/check-test.ps1"
+          }
+        ]
+      }
+    ]
+  }
 }
