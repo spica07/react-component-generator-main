@@ -15,14 +15,20 @@ React 19 + TypeScript 기반 프론트엔드. `useComponentGenerator` 훅이 상
 **새 컴포넌트 추가:**
 - 위치: `src/components/ComponentName.tsx`
 - Props 타입은 동일 파일 내 인터페이스로 정의
+- 스트리밍 카드 컴포넌트: `StreamingCard` — 생성 중 실시간 코드 표시 (인터페이스: `StreamingComponent`)
 
 **훅 수정:**
 - `src/hooks/useComponentGenerator.ts`가 유일한 상태 관리 훅
 - 새 상태가 필요하면 이 훅을 확장한다 (별도 훅 분리 전 검토 필요)
+- `streamingComponents: Map<string, StreamingComponent>` 상태로 진행 중인 스트리밍 관리
+
+**유틸리티:**
+- `src/utils/streamParser.ts` — SSE 스트림 파싱, 코드 후처리 함수 (`parseSseLine`, `stripCodeFencesClient`, `ensureRenderCallClient`)
 
 **타입 추가:**
 - 공유 타입은 `src/types/index.ts`에 추가
 - 컴포넌트 전용 타입은 해당 컴포넌트 파일 내부에 정의
+- 스트리밍 관련: `StreamStatus`, `StreamingComponent` 타입
 
 **컴포넌트 ID 패턴:**
 ```typescript
