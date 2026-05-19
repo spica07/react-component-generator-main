@@ -600,7 +600,7 @@
 .preview-render {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   min-height: 320px;
   padding: 34px;
   background-color: #f8fafc;
@@ -610,6 +610,54 @@
   background-size: 28px 28px;
   border: 1px solid var(--line);
   border-radius: 8px;
+}
+
+.preview-viewport-frame {
+  width: 100%;
+  overflow: auto;
+  transition: max-width 0.25s ease;
+}
+
+.viewport-selector {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.viewport-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.viewport-btn:hover {
+  color: var(--text);
+  background: var(--surface-subtle);
+}
+
+.viewport-btn--active {
+  background: var(--surface-subtle);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.viewport-size {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .preview-error {
