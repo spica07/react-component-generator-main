@@ -3,6 +3,7 @@ import { useState } from 'react';
 interface PromptInputProps {
   onGenerate: (prompt: string) => void;
   isLoading: boolean;
+  promptHistory?: string[];
 }
 
 const EXAMPLES = [
@@ -14,7 +15,7 @@ const EXAMPLES = [
   '테이블 행 상세보기 패널. 선택한 고객의 기본 정보와 최근 활동 표시',
 ];
 
-export function PromptInput({ onGenerate, isLoading }: PromptInputProps) {
+export function PromptInput({ onGenerate, isLoading, promptHistory }: PromptInputProps) {
   const [prompt, setPrompt] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -59,6 +60,46 @@ export function PromptInput({ onGenerate, isLoading }: PromptInputProps) {
           )}
         </button>
       </form>
+      {promptHistory && promptHistory.length > 0 && (
+        <div style={{ marginTop: '12px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            최근 사용
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+            {promptHistory.slice(0, 5).map((p, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setPrompt(p)}
+                style={{
+                  textAlign: 'left',
+                  padding: '6px 10px',
+                  background: 'var(--surface)',
+                  border: '1px solid color-mix(in srgb, var(--text) 12%, transparent)',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  color: 'var(--text-soft)',
+                  cursor: 'pointer',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  transition: 'border-color 0.16s ease, color 0.16s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--primary)';
+                  e.currentTarget.style.color = 'var(--text)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--text) 12%, transparent)';
+                  e.currentTarget.style.color = 'var(--text-soft)';
+                }}
+              >
+                {p.length > 60 ? `${p.slice(0, 60)}...` : p}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="prompt-examples">
         <span className="examples-label">예시 프롬프트</span>
         {EXAMPLES.map((example) => (

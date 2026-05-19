@@ -1,6 +1,4 @@
-# 에이전틱 엔지니어링 with Claude Code — 실무 요약
-
-> 출처: MASO CAMPUS 강의 교안 v1.1 (109 슬라이드)
+# 에이전틱 엔지니어링 with Claude Code
 
 ---
 
