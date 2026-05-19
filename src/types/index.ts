@@ -6,3 +6,13 @@ export interface GeneratedComponent {
   code: string;
   createdAt: Date;
 }
+
+export type StreamStatus = 'streaming' | 'done' | 'error';
+
+export interface StreamingComponent {
+  id: string;
+  prompt: string;
+  partialCode: string;
+  status: StreamStatus;
+  createdAt: Date;
+}

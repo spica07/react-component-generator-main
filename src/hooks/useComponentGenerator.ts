@@ -1,12 +1,14 @@
 import { useState, useCallback } from 'react';
-import type { GeneratedComponent, Provider } from '../types';
+import type { GeneratedComponent, Provider, StreamingComponent } from '../types';
 import { useLocalStorage } from './useLocalStorage';
+import { parseSseLine, stripCodeFencesClient, ensureRenderCallClient } from '../utils/streamParser';
 
 const MAX_COMPONENTS = 20;
 const MAX_PROMPT_HISTORY = 50;
 
 interface UseComponentGeneratorReturn {
   components: GeneratedComponent[];
+  streamingComponents: Map<string, StreamingComponent>;
   promptHistory: string[];
   isLoading: boolean;
   refiningIds: string[];
@@ -25,40 +27,102 @@ export function useComponentGenerator(): UseComponentGeneratorReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [refiningIds, setRefiningIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [streamingComponents, setStreamingComponents] = useState<Map<string, StreamingComponent>>(new Map());
 
   const generate = useCallback(async (prompt: string, apiKey: string | undefined, provider: Provider) => {
     setIsLoading(true);
     setError(null);
 
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+    setStreamingComponents((prev) => {
+      const next = new Map(prev);
+      next.set(id, {
+        id,
+        prompt,
+        partialCode: '',
+        status: 'streaming',
+        createdAt: new Date(),
+      });
+      return next;
+    });
+
     try {
-      const res = await fetch('/api/generate', {
+      const res = await fetch('/api/generate/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, ...(apiKey && { apiKey }), provider }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
+        const data = await res.json() as { error?: string };
         throw new Error(data.error || 'Failed to generate component');
       }
 
-      const newComponent: GeneratedComponent = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        prompt,
-        code: data.code,
-        createdAt: new Date(),
-      };
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let accumulated = '';
 
-      setComponents((prev) => [newComponent, ...prev].slice(0, MAX_COMPONENTS));
-      setPromptHistory((prev) => [prompt, ...prev.filter((p) => p !== prompt)].slice(0, MAX_PROMPT_HISTORY));
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const event = parseSseLine(line);
+          if (event?.type === 'delta') {
+            accumulated += event.text;
+            setStreamingComponents((prev) => {
+              const next = new Map(prev);
+              const comp = prev.get(id);
+              if (comp) next.set(id, { ...comp, partialCode: accumulated });
+              return next;
+            });
+          } else if (event?.type === 'done') {
+            const finalCode = ensureRenderCallClient(stripCodeFencesClient(accumulated));
+            const newComponent: GeneratedComponent = {
+              id,
+              prompt,
+              code: finalCode,
+              createdAt: new Date(),
+            };
+            setComponents((prev) => [newComponent, ...prev].slice(0, MAX_COMPONENTS));
+            setStreamingComponents((prev) => {
+              const next = new Map(prev);
+              next.delete(id);
+              return next;
+            });
+            setPromptHistory((prev) => [prompt, ...prev.filter((p) => p !== prompt)].slice(0, MAX_PROMPT_HISTORY));
+          } else if (event?.type === 'error') {
+            throw new Error(event.message);
+          }
+        }
+      }
     } catch (err) {
+      setStreamingComponents((prev) => {
+        const next = new Map(prev);
+        const comp = prev.get(id);
+        if (comp) next.set(id, { ...comp, status: 'error' });
+        return next;
+      });
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
+
+      setTimeout(() => {
+        setStreamingComponents((prev) => {
+          const next = new Map(prev);
+          if (prev.get(id)?.status === 'error') next.delete(id);
+          return next;
+        });
+      }, 3000);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [setComponents, setPromptHistory]);
 
   const refine = useCallback(async (id: string, instruction: string, apiKey: string | undefined, provider: Provider) => {
     const target = components.find((c) => c.id === id);
@@ -107,5 +171,18 @@ export function useComponentGenerator(): UseComponentGeneratorReturn {
     setPromptHistory([]);
   }, [setComponents, setPromptHistory]);
 
-  return { components, promptHistory, isLoading, refiningIds, error, generate, refine, removeComponent, removePromptHistory, clearPromptHistory, clearAll };
+  return {
+    components,
+    streamingComponents,
+    promptHistory,
+    isLoading,
+    refiningIds,
+    error,
+    generate,
+    refine,
+    removeComponent,
+    removePromptHistory,
+    clearPromptHistory,
+    clearAll,
+  };
 }

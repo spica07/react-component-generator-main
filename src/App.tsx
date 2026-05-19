@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PromptInput } from './components/PromptInput';
 import { ComponentCard } from './components/ComponentCard';
+import { StreamingCard } from './components/StreamingCard';
 import { useComponentGenerator } from './hooks/useComponentGenerator';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useApiKeys } from './hooks/useApiKeys';
@@ -21,7 +22,7 @@ function App() {
   });
   const { getApiKey, setApiKey } = useApiKeys();
   const apiKey = getApiKey(provider);
-  const { components, promptHistory, isLoading, refiningIds, error, generate, refine, removeComponent, removePromptHistory, clearPromptHistory, clearAll } =
+  const { components, streamingComponents, promptHistory, isLoading, refiningIds, error, generate, refine, removeComponent, removePromptHistory, clearPromptHistory, clearAll } =
     useComponentGenerator();
 
   useEffect(() => {
@@ -176,7 +177,7 @@ function App() {
           </div>
         )}
 
-        {isLoading && (
+        {streamingComponents.size === 0 && isLoading && (
           <div className="loading-card">
             <div className="loading-pulse" />
             <p>컴포넌트를 생성하고 있습니다...</p>
@@ -184,6 +185,9 @@ function App() {
         )}
 
         <div className="results-grid">
+          {[...streamingComponents.values()].map((component) => (
+            <StreamingCard key={component.id} component={component} />
+          ))}
           {components.map((component) => (
             <ComponentCard
               key={component.id}
