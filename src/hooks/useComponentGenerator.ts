@@ -9,8 +9,10 @@ interface UseComponentGeneratorReturn {
   components: GeneratedComponent[];
   promptHistory: string[];
   isLoading: boolean;
+  refiningIds: string[];
   error: string | null;
   generate: (prompt: string, apiKey: string | undefined, provider: Provider) => Promise<void>;
+  refine: (id: string, instruction: string, apiKey: string | undefined, provider: Provider) => Promise<void>;
   removeComponent: (id: string) => void;
   removePromptHistory: (prompt: string) => void;
   clearPromptHistory: () => void;
@@ -21,6 +23,7 @@ export function useComponentGenerator(): UseComponentGeneratorReturn {
   const [components, setComponents] = useLocalStorage<GeneratedComponent[]>('rcg:components', []);
   const [promptHistory, setPromptHistory] = useLocalStorage<string[]>('rcg:promptHistory', []);
   const [isLoading, setIsLoading] = useState(false);
+  const [refiningIds, setRefiningIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const generate = useCallback(async (prompt: string, apiKey: string | undefined, provider: Provider) => {
@@ -57,6 +60,36 @@ export function useComponentGenerator(): UseComponentGeneratorReturn {
     }
   }, []);
 
+  const refine = useCallback(async (id: string, instruction: string, apiKey: string | undefined, provider: Provider) => {
+    const target = components.find((c) => c.id === id);
+    if (!target) return;
+
+    setRefiningIds((prev) => [...prev, id]);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: instruction,
+          existingCode: target.code,
+          ...(apiKey && { apiKey }),
+          provider,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to refine component');
+
+      setComponents((prev) => prev.map((c) => c.id === id ? { ...c, code: data.code } : c));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setRefiningIds((prev) => prev.filter((refId) => refId !== id));
+    }
+  }, [components, setComponents]);
+
   const removeComponent = useCallback((id: string) => {
     setComponents((prev) => prev.filter((c) => c.id !== id));
   }, []);
@@ -74,5 +107,5 @@ export function useComponentGenerator(): UseComponentGeneratorReturn {
     setPromptHistory([]);
   }, [setComponents, setPromptHistory]);
 
-  return { components, promptHistory, isLoading, error, generate, removeComponent, removePromptHistory, clearPromptHistory, clearAll };
+  return { components, promptHistory, isLoading, refiningIds, error, generate, refine, removeComponent, removePromptHistory, clearPromptHistory, clearAll };
 }

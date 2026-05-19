@@ -166,10 +166,11 @@ const server = Bun.serve({
 
     if (req.method === 'POST' && url.pathname === '/api/generate') {
       try {
-        const { prompt, apiKey, provider = 'anthropic' } = (await req.json()) as {
+        const { prompt, apiKey, provider = 'anthropic', existingCode } = (await req.json()) as {
           prompt: string;
           apiKey?: string;
           provider?: Provider;
+          existingCode?: string;
         };
 
         const resolvedKey = resolveApiKey(provider, apiKey);
@@ -188,10 +189,14 @@ const server = Bun.serve({
           );
         }
 
+        const finalPrompt = existingCode
+          ? `Here is an existing React component:\n\`\`\`\n${existingCode}\n\`\`\`\n\nModify it with this instruction: ${prompt}`
+          : prompt;
+
         const text =
           provider === 'google'
-            ? await callGoogle(prompt, resolvedKey)
-            : await callAnthropic(prompt, resolvedKey);
+            ? await callGoogle(finalPrompt, resolvedKey)
+            : await callAnthropic(finalPrompt, resolvedKey);
 
         const code = ensureRenderCall(stripCodeFences(text));
 

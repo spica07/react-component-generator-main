@@ -21,7 +21,7 @@ function App() {
   });
   const { getApiKey, setApiKey } = useApiKeys();
   const apiKey = getApiKey(provider);
-  const { components, promptHistory, isLoading, error, generate, removeComponent, removePromptHistory, clearPromptHistory, clearAll } =
+  const { components, promptHistory, isLoading, refiningIds, error, generate, refine, removeComponent, removePromptHistory, clearPromptHistory, clearAll } =
     useComponentGenerator();
 
   useEffect(() => {
@@ -39,6 +39,14 @@ function App() {
       return;
     }
     generate(prompt, apiKey || undefined, provider);
+  };
+
+  const handleRefine = (id: string, instruction: string) => {
+    if (!apiKey.trim() && !hasEnvKey) {
+      alert(`${PROVIDER_CONFIG[provider].label} API 키를 입력하거나 .env에 설정해주세요.`);
+      return;
+    }
+    refine(id, instruction, apiKey || undefined, provider);
   };
 
   const handleProviderChange = (newProvider: Provider) => {
@@ -182,7 +190,9 @@ function App() {
               component={component}
               onRemove={removeComponent}
               onRegenerate={handleGenerate}
+              onRefine={handleRefine}
               isLoading={isLoading}
+              isRefining={refiningIds.includes(component.id)}
             />
           ))}
         </div>

@@ -131,6 +131,104 @@ describe('useComponentGenerator — components 제한', () => {
   });
 });
 
+describe('useComponentGenerator — refine', () => {
+  it('기존 컴포넌트 코드를 existingCode와 함께 서버로 전송한다', async () => {
+    mockFetch
+      .mockReturnValueOnce(makeFetchResponse('const A = () => <div>original</div>;\nrender(<A />);'))
+      .mockReturnValueOnce(makeFetchResponse('const A = () => <div>refined</div>;\nrender(<A />);'));
+
+    const { result } = renderHook(() => useComponentGenerator());
+
+    await act(async () => {
+      await result.current.generate('원본 버튼', undefined, 'anthropic');
+    });
+
+    const componentId = result.current.components[0].id;
+
+    await act(async () => {
+      await result.current.refine(componentId, '색상을 파란색으로 변경', undefined, 'anthropic');
+    });
+
+    const refineCall = mockFetch.mock.calls[1];
+    const body = JSON.parse(refineCall[1].body);
+    expect(body.existingCode).toBeDefined();
+    expect(body.prompt).toBe('색상을 파란색으로 변경');
+  });
+
+  it('refine 후 해당 컴포넌트의 코드가 업데이트된다', async () => {
+    mockFetch
+      .mockReturnValueOnce(makeFetchResponse('const A = () => <div>original</div>;\nrender(<A />);'))
+      .mockReturnValueOnce(makeFetchResponse('const A = () => <div>refined</div>;\nrender(<A />);'));
+
+    const { result } = renderHook(() => useComponentGenerator());
+
+    await act(async () => {
+      await result.current.generate('원본', undefined, 'anthropic');
+    });
+
+    const componentId = result.current.components[0].id;
+
+    await act(async () => {
+      await result.current.refine(componentId, '수정 지시', undefined, 'anthropic');
+    });
+
+    expect(result.current.components[0].code).toBe('const A = () => <div>refined</div>;\nrender(<A />);');
+  });
+
+  it('refine 완료 후 refiningIds에서 제거된다', async () => {
+    mockFetch
+      .mockReturnValueOnce(makeFetchResponse('const A = () => <div/>\nrender(<A />);'))
+      .mockReturnValueOnce(makeFetchResponse('const A = () => <div/>\nrender(<A />);'));
+
+    const { result } = renderHook(() => useComponentGenerator());
+
+    await act(async () => {
+      await result.current.generate('버튼', undefined, 'anthropic');
+    });
+
+    const componentId = result.current.components[0].id;
+
+    await act(async () => {
+      await result.current.refine(componentId, '수정', undefined, 'anthropic');
+    });
+
+    expect(result.current.refiningIds).not.toContain(componentId);
+  });
+
+  it('존재하지 않는 id로 refine을 호출하면 fetch를 하지 않는다', async () => {
+    const { result } = renderHook(() => useComponentGenerator());
+
+    await act(async () => {
+      await result.current.refine('nonexistent-id', '수정', undefined, 'anthropic');
+    });
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('refine 실패 시 error 상태를 설정한다', async () => {
+    mockFetch
+      .mockReturnValueOnce(makeFetchResponse('const A = () => <div/>\nrender(<A />);'))
+      .mockReturnValueOnce(Promise.resolve({
+        ok: false,
+        json: () => Promise.resolve({ error: 'API 오류' }),
+      }));
+
+    const { result } = renderHook(() => useComponentGenerator());
+
+    await act(async () => {
+      await result.current.generate('버튼', undefined, 'anthropic');
+    });
+
+    const componentId = result.current.components[0].id;
+
+    await act(async () => {
+      await result.current.refine(componentId, '수정', undefined, 'anthropic');
+    });
+
+    expect(result.current.error).toBe('API 오류');
+  });
+});
+
 describe('useComponentGenerator — localStorage 영속화', () => {
   it('generate 후 rcg:components가 localStorage에 저장된다', async () => {
     mockFetch.mockReturnValueOnce(makeFetchResponse('const A = () => null;'));

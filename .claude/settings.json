@@ -20,6 +20,12 @@
             "type": "command",
             "shell": "powershell",
             "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/check-test.ps1"
+          },
+          {
+            "type": "agent",
+            "prompt": "파일이 저장되었습니다. code-evaluator를 사용하여 변경된 코드의 품질을 검증해주세요. 코드의 TDD 준수 여부, 테스트 커버리지, 네이밍, 단일 책임, 숨은 버그 가능성을 점검하세요.",
+            "statusMessage": "코드 품질 검증 중...",
+            "timeout": 60
           }
         ]
       }
